@@ -19,8 +19,8 @@ def generate_story(prompt: StoryPrompt) -> StoryResponse:
             {
                 "role": "user",
                 "content": f"""
-             Tell an engaging story titled '{prompt.title}'.
-             The story should be suitable for a {prompt.reader_age} audience.
+             Tell the first section (under 100 words) of an engaging story titled '{prompt.title}'.
+             The story should be suitable for a {prompt.reader_age} year old audience.
              End the passage with 3 creative options the user could choose to continue the story.
              """,
             },
