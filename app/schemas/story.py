@@ -1,16 +1,21 @@
 from pydantic import BaseModel
+from typing import Optional
+from app.schemas.section import Section
 
 
-class StoryPrompt(BaseModel):
+class StoryBase(BaseModel):
     title: str
     genre: str
-    reader_age: str
-    response_id: str = None
-    selected_option: str = None  # Optional: selected option for continuing the story
+    age: Optional[int] = None
+    grade_level: Optional[int] = None
 
 
-class StoryResponse(BaseModel):
-    title: str
-    content: str
-    response_id: str
-    choices: list[str] = []  # Optional: list of choices for the user to select from
+class StoryPrompt(StoryBase):
+    story_id: Optional[str] = None  # for continuations
+    latest_section: Optional[Section] = None  # for continuations
+
+
+class StoryResponse(StoryBase):
+    story_id: str
+    current_section: Section
+    choices: list[str]

@@ -1,100 +1,20 @@
-import os
-import json
-from openai import OpenAI
-from dotenv import load_dotenv
+from uuid import uuid4
 from app.schemas.story import StoryPrompt, StoryResponse
-
-load_dotenv()  # Load .env file
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+from app.services.section_generator import generate_section
 
 
 def generate_story(prompt: StoryPrompt) -> StoryResponse:
-    response = client.responses.create(
-        model="gpt-4o-mini",  # or "gpt-3.5-turbo" if preferred
-        input=[
-            {
-                "role": "system",
-                "content": f"You are a creative storyteller skilled in {prompt.genre}.",
-            },
-            {
-                "role": "user",
-                "content": f"""
-             Tell the first section (under 100 words) of an engaging story titled '{prompt.title}'.
-             The story should be suitable for a {prompt.reader_age} year old audience.
-             End the passage with 3 creative options the user could choose to continue the story.
-             """,
-            },
-        ],
-        temperature=0.8,
-        text={
-            "format": {
-                "type": "json_schema",
-                "name": "story",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string"},
-                        "content": {"type": "string"},
-                        "choices": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                        },
-                    },
-                    "required": ["title", "content", "choices"],
-                    "additionalProperties": False,
-                },
-                "strict": True,
-            },
-        },
-        # stream=True,
-    )
-    # for event in stream:
-    # print(event)
+    story_id = prompt.story_id or str(uuid4())
 
-    event = json.loads(response.output_text)
+    # First section starts at order = 1
+    section = generate_section(prompt=prompt, story_id=story_id, order=1)
+
     return StoryResponse(
-        title=event["title"],
-        content=event["content"],
-        choices=event["choices"],
-        response_id=response.id,
-    )
-
-
-def generate_next_section(prompt: StoryPrompt) -> StoryResponse:
-    response = client.responses.create(
-        model="gpt-4o-mini",  # or "gpt-3.5-turbo" if preferred
-        input=[
-            {
-                "role": "user",
-                "content": f"Continue the story based on selected option '{prompt.selected_option}' but do not give additional options to continue.",
-            },
-        ],
-        temperature=0.8,
-        previous_response_id=prompt.response_id,
-        text={
-            "format": {
-                "type": "json_schema",
-                "name": "story",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string"},
-                        "content": {"type": "string"},
-                    },
-                    "required": ["title", "content"],
-                    "additionalProperties": False,
-                },
-                "strict": True,
-            },
-        },
-        # stream=True,
-    )
-    # for event in stream:
-    # print(event)
-
-    event = json.loads(response.output_text)
-    return StoryResponse(
-        title=event["title"],
-        content=event["content"],
-        response_id=response.id,
+        story_id=story_id,
+        title=prompt.title,
+        genre=prompt.genre,
+        age=prompt.age,
+        grade_level=prompt.grade_level,
+        current_section=section,
+        choices=section.choices,
     )
